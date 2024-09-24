@@ -1,6 +1,13 @@
+import CodeEditor from '@/myComponent/codeArea/CodeEditor';
 import React, { useState, useEffect } from 'react';
 
 const RepoCode = () => {
+  const [clients,setClients] = useState([
+    {socketId:1,username:"gulab_jamun"},
+    {socketId:2,username:"raso_malai"}
+  ])
+
+  // this code is for resizing
   const [leftWidth, setLeftWidth] = useState(window.innerWidth/4); // Initial width for the left panel
   const [middleWidth, setMiddleWidth] = useState(window.innerWidth/2); // Initial width for the middle panel
   const [rightWidth, setRightWidth] = useState(window.innerWidth/4); // Initial width for the right panel
@@ -56,12 +63,29 @@ const RepoCode = () => {
     <div className="resizable-layout flex h-[100vh]">
       <div className="file-explorer bg-[#03152b] border-r-2 border-solid border-[#ccc] overflow-auto" style={{ width: leftWidth }}>
         <h2>Files</h2>
+        <div>
+          {/* Your file explorer content goes here */}
+        </div>
+        <div className='clients'>
+          {/* break and show ---------*/}
+          <div>
+            
+            {Array.from({ length: Math.floor(leftWidth / 10) }, (_, index) => '-').join('')}
+          
+          
+            </div>
+          
+          <h1 className=''>Online Users</h1>
+          {clients.map(client=><div key={client.socketId} className='client text-green-700'>{client.username}</
+            div>)}
+        </div>
         {/* Your file explorer content goes here */}
       </div>
       <div className="resizer cursor-ew-resize w-5 bg-transparent" onMouseDown={handleMouseDownLeft} />
-      <div className="editor flex bg-[#312408] border-r-2 border-solid border-[#ccc] overflow-auto" style={{ width: middleWidth }}>
-        <h2>Editor</h2>
+      <div className="editor flex flex-col border-r-2 border-solid border-[#ccc] overflow-auto" style={{ width: middleWidth }}>
+        {/* <h2>Editor</h2> */}
         {/* Your editor content goes here */}
+        <CodeEditor/>
       </div>
       <div className="resizer cursor-ew-resize w-5 bg-transparent" onMouseDown={handleMouseDownRight} />
       <div className="terminal bg-[#03152b] overflow-auto" style={{ width: rightWidth }}>
