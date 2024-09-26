@@ -16,6 +16,18 @@ const ACCESS_TOKEN_SECRET=process.env.ACCESS_TOKEN_SECRET;
 const ACCESS_TOKEN_EXPIRY=process.env;
 const REFRESH_TOKEN_SECRET=process.env.REFRESH_TOKEN_SECRET;
 const REFRESH_TOKEN_EXPIRY=process.env.REFRESH_TOKEN_EXPIRY;
+
+// ACTIONS
+
+ const ACTIONS = {
+    JOIN: 'join',
+    JOINED: 'joined',
+    DISCONNECTED: 'disconnected',
+    CODE_CHANGE: 'code-change',
+    SYNC_CODE: 'sync-code',
+    LEAVE: 'leave',
+}
+
 module.exports = {
     PORT,
     CLOUDINARY_CLOUD_NAME,
@@ -28,5 +40,6 @@ module.exports = {
     ACCESS_TOKEN_EXPIRY,
     REFRESH_TOKEN_SECRET,
     REFRESH_TOKEN_EXPIRY,
-    count
+    count,
+    ACTIONS
     };

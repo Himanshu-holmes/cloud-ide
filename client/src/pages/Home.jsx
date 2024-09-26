@@ -36,7 +36,9 @@ export const Home = () => {
             toast.error('Please enter username and room id')
             return
         }
-        navigate(`/editor/${roomId}`)
+        navigate(`/editor/${roomId}`,{
+          state: {username}
+        })
     }
   return (
     <div className='flex flex-col justify-center items-center min-h-screen'>

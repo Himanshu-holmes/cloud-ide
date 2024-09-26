@@ -1,7 +1,35 @@
+import { ACTIONS } from '@/constants';
 import CodeEditor from '@/myComponent/codeArea/CodeEditor';
-import React, { useState, useEffect } from 'react';
+import { initSocket } from '@/socket';
+import React, { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const RepoCode = () => {
+  const socketRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+  const init = async () => {
+    socketRef.current = await initSocket();
+    socketRef.current.on("connect_error",(err)=>handleError(err));
+    socketRef.current.on("connect_failed",(err)=>handleError(err));
+
+    function handleError(err){
+      console.log("error",err);
+      toast.error("Socket connection failed");
+      navigate("/");
+      
+    }
+    // socketRef.current.emit(ACTIONS.JOIN,{
+    //   roomId,
+    //   username: location.state?.username
+    // })
+  };
+  init();
+  }, []);
+
   const [clients,setClients] = useState([
     {socketId:1,username:"gulab_jamun"},
     {socketId:2,username:"raso_malai"}
