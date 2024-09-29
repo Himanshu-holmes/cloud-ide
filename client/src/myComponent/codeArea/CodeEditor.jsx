@@ -3,7 +3,7 @@ import { Editor, useMonaco } from '@monaco-editor/react';
 import { LanguageSelector } from './LanguageSelector';
 import { ACTIONS, CODE_SNIPPETS } from '@/constants';
 
-const CodeEditor = ({ socketRef, roomId }) => {
+const CodeEditor = ({ socketRef, roomId,onCodeChange }) => {
   const editorRef = useRef(null);
   const monaco = useMonaco();
 
@@ -14,12 +14,13 @@ const CodeEditor = ({ socketRef, roomId }) => {
     editorRef.current = editor;
     editorRef.current.focus();
 
-    editor.setValue('console.log()');
+    // onCodeChange(editorRef.current.getValue());
+   
 
     editor.onDidChangeModelContent((event) => {
       const updatedCode = editor.getValue();
       console.log('editor', updatedCode);
-
+     
       // Emit code change to all users in the room
       socketRef.current.emit(ACTIONS.CODE_CHANGE, {
         roomId,
@@ -40,8 +41,9 @@ const CodeEditor = ({ socketRef, roomId }) => {
 
     // Listen for code change events from the server
     socketRef.current.on(ACTIONS.CODE_CHANGE, ({ codes,changes }) => {
+      
       console.log("from server",codes)
-      if (codes !== null && codes !== editorRef.current.getValue()) {
+      if (codes !== null ) {
         console.log('changes',changes);
         console.log('code change from socket', codes);
         setCode(codes);

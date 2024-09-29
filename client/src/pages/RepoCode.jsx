@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { ACTIONS } from '@/constants';
 import CodeEditor from '@/myComponent/codeArea/CodeEditor';
 import { initSocket } from '@/socket';
@@ -8,6 +9,7 @@ import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 const RepoCode = () => {
   const socketRef = useRef(null);
+  const codeRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { roomId } = useParams();
@@ -46,7 +48,13 @@ const RepoCode = () => {
         }
         console.log("socket init ran")
         setClients(clients)
-      })
+        console.log("syncing code",codeRef.current)
+        socketRef.current.emit(ACTIONS.SYNC_CODE,{codes:codeRef.current,
+          socketId
+        })
+      });
+      
+      
 
       // Listening on disconnected
       socketRef.current.on(ACTIONS.DISCONNECTED,({socketId,username})=>{
@@ -145,12 +153,34 @@ return () => {
             div>)}
         </div>
         {/* Your file explorer content goes here */}
+        <Button className="dark:bg-slate-300 p-4" onClick={(e)=>{
+          if(!roomId) return
+          navigator.clipboard.writeText(roomId)
+          .then(()=>{
+            toast.success('Room ID copied to clipboard')
+          })
+          .catch(()=>{
+            toast.error('Failed to copy Room ID')
+          })
+        }}>
+          Copy Room ID
+        </Button>
+        <Button className="dark:bg-slate-300 p-4" onClick={(e)=>{
+          navigate('/')
+        }
+        }>
+          Leave Room
+        </Button>
       </div>
       <div className="resizer cursor-ew-resize w-5 bg-transparent" onMouseDown={handleMouseDownLeft} />
       <div className="editor flex flex-col border-r-2 border-solid border-[#ccc] overflow-auto " style={{ width: middleWidth }}>
         {/* <h2>Editor</h2> */}
         {/* Your editor content goes here */}
-        <CodeEditor socketRef={socketRef} roomId={roomId}/>
+        <CodeEditor socketRef={socketRef} roomId={roomId} onCodeChange={
+          (code)=>{
+            codeRef.current = code;
+          }
+        }/>
       </div>
       <div className="resizer cursor-ew-resize w-5 bg-transparent" onMouseDown={handleMouseDownRight} />
       <div className="terminal bg-[#03152b] overflow-auto" style={{ width: rightWidth }}>

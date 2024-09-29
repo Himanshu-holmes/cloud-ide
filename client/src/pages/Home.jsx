@@ -45,6 +45,7 @@ export const Home = () => {
       <Card className={cn(`w-96`)}>
   <CardHeader>
     <CardTitle>Cloud-ide</CardTitle>
+    
     <CardDescription className={cn(`h-2`)}>{roomId}</CardDescription>
   </CardHeader>
   <CardContent className={cn(`flex flex-col gap-4`)}>

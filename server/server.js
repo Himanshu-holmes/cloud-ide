@@ -42,6 +42,9 @@ socket.on(ACTIONS.CODE_CHANGE,({roomId,codes,changes})=>{
 
 
 })
+socket.on(ACTIONS.SYNC_CODE,({socketId,codes})=>{
+    io.to(socketId).emit(ACTIONS.CODE_CHANGE,{codes})
+})
 socket.on("disconnecting",()=>{
     const rooms = [...socket.rooms];
 
