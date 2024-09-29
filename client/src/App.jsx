@@ -10,18 +10,13 @@ import RepoCode from './pages/RepoCode'
 
 
 function App() {
-  const [count, setCount] = useState(0)
+
 
   const router = createBrowserRouter(
     createRoutesFromElements(
       <>
-          
-    
-  
         <Route path="/" element={<Home />} />
-        <Route path='/editor/:id' element={<RepoCode/>} />
-  
- 
+        <Route path='/editor/:roomId' element={<RepoCode/>} />
       </>
     )
   )

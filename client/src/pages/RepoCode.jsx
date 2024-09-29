@@ -3,18 +3,28 @@ import CodeEditor from '@/myComponent/codeArea/CodeEditor';
 import { initSocket } from '@/socket';
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
+
 
 const RepoCode = () => {
   const socketRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { roomId } = useParams();
+
+  const [clients,setClients] = useState([
+    
+  ])
+
 
   useEffect(() => {
+    if(!location.state) return 
+    console.log("current socket",socketRef.current);
   const init = async () => {
     socketRef.current = await initSocket();
     socketRef.current.on("connect_error",(err)=>handleError(err));
     socketRef.current.on("connect_failed",(err)=>handleError(err));
+    console.log("socket connected",socketRef.current);
 
     function handleError(err){
       console.log("error",err);
@@ -22,18 +32,45 @@ const RepoCode = () => {
       navigate("/");
       
     }
-    // socketRef.current.emit(ACTIONS.JOIN,{
-    //   roomId,
-    //   username: location.state?.username
-    // })
+    socketRef.current.emit(ACTIONS.JOIN,{
+      roomId,
+      username: location.state?.username
+    })
+    // listening for joined event
+    socketRef.current.on(ACTIONS.JOINED,({ clients,
+      username,
+      socketId})=>{
+        if(username !== location.state?.username){
+          toast.success(`${username} joined the room`);
+          console.log(`$username joined`)
+        }
+        console.log("socket init ran")
+        setClients(clients)
+      })
+
+      // Listening on disconnected
+      socketRef.current.on(ACTIONS.DISCONNECTED,({socketId,username})=>{
+        toast.success(`${username} left the room `)
+        setClients((prev)=>{
+          return prev.filter(client => client.socketId !== socketId)
+        })
+      })
   };
   init();
+
+return () => {
+  socketRef.current?.disconnect();
+  socketRef.current?.off(ACTIONS.JOINED);
+  socketRef.current?.off(ACTIONS.DISCONNECTED);
+};
+
   }, []);
 
-  const [clients,setClients] = useState([
-    {socketId:1,username:"gulab_jamun"},
-    {socketId:2,username:"raso_malai"}
-  ])
+  if(!location.state){
+    return <Navigate to="/"/>
+  }
+
+ 
 
   // this code is for resizing
   const [leftWidth, setLeftWidth] = useState(window.innerWidth/4); // Initial width for the left panel
@@ -89,12 +126,12 @@ const RepoCode = () => {
 
   return (
     <div className="resizable-layout flex h-[100vh]">
-      <div className="file-explorer bg-[#03152b] border-r-2 border-solid border-[#ccc] overflow-auto" style={{ width: leftWidth }}>
+      <div className="file-explorer bg-[#03152b] border-r-2 border-solid border-[#ccc] overflow-auto p-2" style={{ width: leftWidth }}>
         <h2>Files</h2>
         <div>
           {/* Your file explorer content goes here */}
         </div>
-        <div className='clients'>
+        <div className='clients '>
           {/* break and show ---------*/}
           <div>
             
@@ -110,10 +147,10 @@ const RepoCode = () => {
         {/* Your file explorer content goes here */}
       </div>
       <div className="resizer cursor-ew-resize w-5 bg-transparent" onMouseDown={handleMouseDownLeft} />
-      <div className="editor flex flex-col border-r-2 border-solid border-[#ccc] overflow-auto" style={{ width: middleWidth }}>
+      <div className="editor flex flex-col border-r-2 border-solid border-[#ccc] overflow-auto " style={{ width: middleWidth }}>
         {/* <h2>Editor</h2> */}
         {/* Your editor content goes here */}
-        <CodeEditor/>
+        <CodeEditor socketRef={socketRef} roomId={roomId}/>
       </div>
       <div className="resizer cursor-ew-resize w-5 bg-transparent" onMouseDown={handleMouseDownRight} />
       <div className="terminal bg-[#03152b] overflow-auto" style={{ width: rightWidth }}>
