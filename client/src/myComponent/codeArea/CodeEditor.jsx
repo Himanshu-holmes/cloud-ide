@@ -15,12 +15,14 @@ const CodeEditor = ({ socketRef, roomId,onCodeChange }) => {
     editorRef.current.focus();
 
     // onCodeChange(editorRef.current.getValue());
-   
+    
+
 
     editor.onDidChangeModelContent((event) => {
       const updatedCode = editor.getValue();
       console.log('editor', updatedCode);
-     
+      onCodeChange(updatedCode)
+ 
       // Emit code change to all users in the room
       socketRef.current.emit(ACTIONS.CODE_CHANGE, {
         roomId,

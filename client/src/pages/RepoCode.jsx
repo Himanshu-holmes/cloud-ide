@@ -49,6 +49,7 @@ const RepoCode = () => {
         console.log("socket init ran")
         setClients(clients)
         console.log("syncing code",codeRef.current)
+        
         socketRef.current.emit(ACTIONS.SYNC_CODE,{codes:codeRef.current,
           socketId
         })
