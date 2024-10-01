@@ -21,7 +21,7 @@ function getAllConnectedClients(roomId){
 
 const userSocketMap = {}
 io.on('connection', (socket) => {
-console.log('a user connected', socket.id);
+console.log(`a user connected at ${new Date(Date.now()).toLocaleString()}`, socket.id);
 socket.on(ACTIONS.JOIN, ({roomId, username})=>{
     userSocketMap[socket.id] = username;
     socket.join(roomId);

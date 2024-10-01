@@ -6,6 +6,7 @@ import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, R
 import { Navbar } from './myComponent/Navbar'
 import { Toaster } from 'react-hot-toast'
 import RepoCode from './pages/RepoCode'
+import TerminalComp from './myComponent/terminal/Terminal'
 
 
 
@@ -17,6 +18,7 @@ function App() {
       <>
         <Route path="/" element={<Home />} />
         <Route path='/editor/:roomId' element={<RepoCode/>} />
+        <Route path="terminal" element={<TerminalComp />} />
       </>
     )
   )
