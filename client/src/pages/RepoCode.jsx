@@ -1,6 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { ACTIONS } from '@/constants';
 import CodeEditor from '@/myComponent/codeArea/CodeEditor';
+import FileTree from '@/myComponent/fileArea/FileTree';
+
+import TerminalComp from '@/myComponent/terminal/Terminal';
 import { initSocket } from '@/socket';
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
@@ -8,6 +11,20 @@ import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 
 const RepoCode = () => {
+  // files
+  const [fileTree,setFileTree] = useState({});
+  const getFileTree = async()=>{
+    const response = await fetch("http://localhost:3000/files");
+    const result = await response.json();
+    console.log("filetree == ",result)
+    setFileTree(result)
+  }
+
+  useEffect(()=>{
+    getFileTree();
+    
+  },[])
+  // code editor
   const socketRef = useRef(null);
   const codeRef = useRef(null);
   const location = useLocation();
@@ -64,7 +81,7 @@ const RepoCode = () => {
           return prev.filter(client => client.socketId !== socketId)
         })
       })
-  };
+  };  
   init();
 
 return () => {
@@ -139,6 +156,7 @@ return () => {
         <h2>Files</h2>
         <div>
           {/* Your file explorer content goes here */}
+          <FileTree tree={fileTree}/>
         </div>
         <div className='clients '>
           {/* break and show ---------*/}
@@ -183,10 +201,11 @@ return () => {
           }
         }/>
       </div>
-      <div className="resizer cursor-ew-resize w-5 bg-transparent" onMouseDown={handleMouseDownRight} />
-      <div className="terminal bg-[#03152b] overflow-auto" style={{ width: rightWidth }}>
+      <div className="resizer cursor-ew-resize w-5 bg-transparent overflow-hidden" onMouseDown={handleMouseDownRight} />
+      <div className="terminal bg-[#03152b] overflow-hidden" style={{ width: rightWidth }}>
         <h2>Terminal</h2>
         {/* Your terminal content goes here */}
+        <TerminalComp/>
       </div>
     </div>
   );

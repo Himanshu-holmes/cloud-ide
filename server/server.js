@@ -1,10 +1,11 @@
 const express = require('express');
 
-const app = express();
+
 
 const http = require('http')
 const {Server} = require('socket.io');
 const socketHandler = require('./src/middleware/socketHandler');
+const app = require('./src/app');
 
 
 

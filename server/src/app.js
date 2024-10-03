@@ -8,6 +8,9 @@ const cors = require('cors');
 let {count} = require('./constant');
 const cookieParser = require('cookie-parser');
 const logger = require('./controllers/log');
+const { generateFileTree } = require('./controllers/file.controller.js');
+
+
 
 app.use(cors({
     origin:CORS_ORIGIN,
@@ -19,10 +22,10 @@ app.use(express.static("public"))
 app.use(cookieParser())
 
 const userRequest= {};
-app.use((req,res,next)=>{
-  logger(userRequest,req.url,req.method,req.ip);
-    next();
-})
+// app.use((req,res,next)=>{
+//   logger(userRequest,req.url,req.method,req.ip);
+//     next();
+// })
 
 // routes ===========================
 app.get('/',(req,res)=>{
@@ -32,6 +35,11 @@ app.get('/',(req,res)=>{
 })
 // 
 app.use("/api/",require("./routes/user.routes"));
+
+app.get("/files",async (req,res)=>{
+    let fileTree = await generateFileTree("./user")
+    res.json({tree:fileTree})
+})
 
 
 module.exports = app
