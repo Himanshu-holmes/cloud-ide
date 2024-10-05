@@ -8,7 +8,7 @@ const cors = require('cors');
 let {count} = require('./constant');
 const cookieParser = require('cookie-parser');
 const logger = require('./controllers/log');
-const { generateFileTree } = require('./controllers/file.controller.js');
+const { generateFileTree } = require('./controllers/fileController/file.controller.js');
 
 
 

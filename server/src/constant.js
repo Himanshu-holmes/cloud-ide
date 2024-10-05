@@ -26,7 +26,8 @@ const REFRESH_TOKEN_EXPIRY=process.env.REFRESH_TOKEN_EXPIRY;
     CODE_CHANGE: 'code-change',
     SYNC_CODE: 'sync-code',
     LEAVE: 'leave',
-}
+};
+
 
 module.exports = {
     PORT,

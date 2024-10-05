@@ -13,11 +13,12 @@ import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 const RepoCode = () => {
   // files
   const [fileTree,setFileTree] = useState({});
+  const [selectedFile, setSelectedFile] = useState("")
   const getFileTree = async()=>{
     const response = await fetch("http://localhost:3000/files");
     const result = await response.json();
     console.log("filetree == ",result)
-    setFileTree(result)
+    setFileTree(result.tree)
   }
 
   useEffect(()=>{
@@ -72,7 +73,7 @@ const RepoCode = () => {
         })
       });
       
-      
+      socketRef.current.on("file:refresh",getFileTree)
 
       // Listening on disconnected
       socketRef.current.on(ACTIONS.DISCONNECTED,({socketId,username})=>{
@@ -88,6 +89,7 @@ return () => {
   socketRef.current?.disconnect();
   socketRef.current?.off(ACTIONS.JOINED);
   socketRef.current?.off(ACTIONS.DISCONNECTED);
+  socketRef.current?.off("file:refresh",getFileTree)
 };
 
   }, []);
@@ -155,8 +157,8 @@ return () => {
       <div className="file-explorer bg-[#03152b] border-r-2 border-solid border-[#ccc] overflow-auto p-2" style={{ width: leftWidth }}>
         <h2>Files</h2>
         <div>
-          {/* Your file explorer content goes here */}
-          <FileTree tree={fileTree}/>
+          {/* file explorer */}
+          <FileTree tree={fileTree} setSelectedFile={setSelectedFile} />
         </div>
         <div className='clients '>
           {/* break and show ---------*/}
@@ -171,7 +173,7 @@ return () => {
           {clients.map(client=><div key={client.socketId} className='client text-green-700'>{client.username}</
             div>)}
         </div>
-        {/* Your file explorer content goes here */}
+        {/* */}
         <Button className="dark:bg-slate-300 p-4" onClick={(e)=>{
           if(!roomId) return
           navigator.clipboard.writeText(roomId)
@@ -193,18 +195,19 @@ return () => {
       </div>
       <div className="resizer cursor-ew-resize w-5 bg-transparent" onMouseDown={handleMouseDownLeft} />
       <div className="editor flex flex-col border-r-2 border-solid border-[#ccc] overflow-auto " style={{ width: middleWidth }}>
-        {/* <h2>Editor</h2> */}
-        {/* Your editor content goes here */}
-        <CodeEditor socketRef={socketRef} roomId={roomId} onCodeChange={
+        <h2>Editor</h2>
+        {selectedFile && <p>{selectedFile.replaceAll("/"," >  ")}</p>}
+        {/* editor  */}
+        <CodeEditor selectedFile={selectedFile}  socketRef={socketRef} roomId={roomId} onCodeChange={
           (code)=>{
             codeRef.current = code;
-          }
+          }               
         }/>
       </div>
       <div className="resizer cursor-ew-resize w-5 bg-transparent overflow-hidden" onMouseDown={handleMouseDownRight} />
       <div className="terminal bg-[#03152b] overflow-hidden" style={{ width: rightWidth }}>
         <h2>Terminal</h2>
-        {/* Your terminal content goes here */}
+        {/* terminal*/}
         <TerminalComp/>
       </div>
     </div>

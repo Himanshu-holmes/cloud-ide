@@ -48,11 +48,12 @@ function TerminalComp() {
     }
     init();
     // Cleanup on component unmount
-    // return () => {
-    //   socket.current?.disconnect();
-    //   term.dispose(); // Clean up the terminal instance
-    // };
-  }, [socket.current]);
+    return () => {
+      socket.current.off("terminal:data")
+      socket.current?.disconnect();
+      term.dispose(); // Clean up the terminal instance
+    };
+  }, []);
 
   return (
     <div id='terminal'

@@ -3,11 +3,11 @@ import { Editor, useMonaco } from '@monaco-editor/react';
 import { LanguageSelector } from './LanguageSelector';
 import { ACTIONS, CODE_SNIPPETS } from '@/constants';
 
-const CodeEditor = ({ socketRef, roomId,onCodeChange }) => {
+const CodeEditor = ({ socketRef, roomId,onCodeChange, selectedFile }) => {
   const editorRef = useRef(null);
   const monaco = useMonaco();
 
-  const [code, setCode] = useState('// some comment');
+  const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
 
   const onMount = (editor) => {
@@ -16,7 +16,7 @@ const CodeEditor = ({ socketRef, roomId,onCodeChange }) => {
 
     // onCodeChange(editorRef.current.getValue());
     
-
+  
 
     editor.onDidChangeModelContent((event) => {
       const updatedCode = editor.getValue();
@@ -58,6 +58,21 @@ const CodeEditor = ({ socketRef, roomId,onCodeChange }) => {
       socketRef.current.off(ACTIONS.CODE_CHANGE);
     };
   }, [socketRef.current]);
+
+  useEffect(()=>{
+    if(code && selectedFile){
+      const timer = setTimeout(()=>{
+        console.log("code saved");
+        socketRef.current.emit("file:change",{
+          content:code,
+          path:selectedFile
+        })
+      },5000);
+      return ()=>{
+        clearTimeout(timer);  
+      }
+    }
+  },[code])
 
   return (
     <div>
