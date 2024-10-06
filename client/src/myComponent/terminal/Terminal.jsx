@@ -46,12 +46,12 @@ function TerminalComp() {
       // });
     // }
     }
-    init();
+    init();       
     // Cleanup on component unmount
     return () => {
-      socket.current.off("terminal:data")
+      socket.current?.off("terminal:data")
       socket.current?.disconnect();
-      term.dispose(); // Clean up the terminal instance
+      term?.dispose(); // Clean up the terminal instance
     };
   }, []);
 

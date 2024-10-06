@@ -1,15 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, useMonaco } from '@monaco-editor/react';
 import { LanguageSelector } from './LanguageSelector';
 import { ACTIONS, CODE_SNIPPETS } from '@/constants';
 
-const CodeEditor = ({ socketRef, roomId,onCodeChange, selectedFile }) => {
+const CodeEditor = ({ socketRef, roomId,onCodeChange, selectedFile,isSaved,setIsSaved }) => {
   const editorRef = useRef(null);
   const monaco = useMonaco();
 
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
-
+  const [selectedFileContent,setSelectedFileContent] = useState("");
+  // const isSaved =  code === selectedFileContent;
+useEffect(()=>{
+  setIsSaved(()=>code === selectedFileContent)
+},[code,selectedFile])
   const onMount = (editor) => {
     editorRef.current = editor;
     editorRef.current.focus();
@@ -60,7 +64,7 @@ const CodeEditor = ({ socketRef, roomId,onCodeChange, selectedFile }) => {
   }, [socketRef.current]);
 
   useEffect(()=>{
-    if(code && selectedFile){
+    if(code && selectedFile && !isSaved){
       const timer = setTimeout(()=>{
         console.log("code saved");
         socketRef.current.emit("file:change",{
@@ -69,10 +73,22 @@ const CodeEditor = ({ socketRef, roomId,onCodeChange, selectedFile }) => {
         })
       },5000);
       return ()=>{
-        clearTimeout(timer);  
+        clearTimeout(timer);
       }
     }
   },[code])
+
+  const getFileContent = useCallback(async() =>{
+    if(!selectedFile) return
+    const response = await fetch(`http://localhost:3000/file/content?path=${selectedFile}`)
+    let result = await response.json().then((res)=>res.content);
+    console.log("file content from backend  ================== ",result);
+    setSelectedFileContent(result);
+    setCode(result)
+ },[selectedFile])
+  useEffect(()=>{
+    getFileContent()
+  },[selectedFile])
 
   return (
     <div>

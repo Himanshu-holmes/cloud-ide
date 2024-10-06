@@ -14,6 +14,7 @@ const RepoCode = () => {
   // files
   const [fileTree,setFileTree] = useState({});
   const [selectedFile, setSelectedFile] = useState("")
+  
   const getFileTree = async()=>{
     const response = await fetch("http://localhost:3000/files");
     const result = await response.json();
@@ -114,7 +115,15 @@ return () => {
   const handleMouseDownRight = () => {
     setIsResizingRight(true);
   };
-
+ const [isSaved,setIsSaved] = useState(false)
+// function handleSaved(c,s,setIsSaved){
+//    function checkIsSaved(c,s){
+//     return c===s
+//    }
+//    let res = checkIsSaved(c,s);
+//    console.log("isSaved ============================================================ ",res)
+//    setIsSaved(res)
+// }
   const handleMouseMove = (event) => {
     if (isResizingLeft) {
       const newWidth = event.clientX;
@@ -197,8 +206,9 @@ return () => {
       <div className="editor flex flex-col border-r-2 border-solid border-[#ccc] overflow-auto " style={{ width: middleWidth }}>
         <h2>Editor</h2>
         {selectedFile && <p>{selectedFile.replaceAll("/"," >  ")}</p>}
+        {<p>{isSaved ? "Saved":"Unsaved"}</p>}
         {/* editor  */}
-        <CodeEditor selectedFile={selectedFile}  socketRef={socketRef} roomId={roomId} onCodeChange={
+        <CodeEditor  setIsSaved={setIsSaved} isSaved={isSaved} selectedFile={selectedFile}  socketRef={socketRef} roomId={roomId} onCodeChange={
           (code)=>{
             codeRef.current = code;
           }               

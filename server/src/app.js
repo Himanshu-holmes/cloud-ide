@@ -1,5 +1,5 @@
 const express = require('express');
-const fs = require('fs');
+const fs = require('fs/promises');
 const {  CORS_ORIGIN } = require('./constant');
 
 const app = express();
@@ -39,6 +39,12 @@ app.use("/api/",require("./routes/user.routes"));
 app.get("/files",async (req,res)=>{
     let fileTree = await generateFileTree("./user")
     res.json({tree:fileTree})
+});
+app.get("/file/content",async(req,res)=>{
+    const path = req.query.path;
+    console.log("path",path)
+      let data =  await fs.readFile(`./user${path}`,"utf-8");
+      res.json({content:data})
 })
 
 
