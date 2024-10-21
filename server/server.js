@@ -8,11 +8,10 @@ const socketHandler = require('./src/middleware/socketHandler');
 const app = require('./src/app');
 
 
-
 const server = http.createServer(app);
 const io = new Server(server);
 
-socketHandler(io)
+socketHandler(io);
 
 
 server.listen(3000, () => {

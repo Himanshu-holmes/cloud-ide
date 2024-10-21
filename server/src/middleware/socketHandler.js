@@ -7,7 +7,7 @@ module.exports = (io) => {
 
         roomControler(io,socket);
         terminalController(io,socket);
-        fileController(io,socket)
+        fileController(io,socket);
         
 
         // Handle disconnection
