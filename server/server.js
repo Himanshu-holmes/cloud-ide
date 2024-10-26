@@ -9,7 +9,7 @@ const app = require('./src/app');
 
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server,{cors:"*"});
 
 socketHandler(io);
 
