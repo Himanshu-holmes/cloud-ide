@@ -7,12 +7,17 @@ import { initSocket } from '@/socket';
 function TerminalComp() {
   const terminalRef = useRef(null); // Reference to the DOM element
   const termInstance = useRef(null);
+  const isRender = useRef(false)
   const socket = useRef(null); // State to store socket instance
 
 
   useEffect(() => {
+    if(isRender.current)return;
+    console.log("terminal rendered ==================");
+    isRender.current = true
     // Initialize Socket.IO connection
     async function init(){
+      
     const newSocket =   await initSocket();// Connect to the backend
     socket.current = newSocket;
 

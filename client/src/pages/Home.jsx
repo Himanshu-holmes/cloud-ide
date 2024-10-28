@@ -42,6 +42,22 @@ export const Home = () => {
     }
   return (
     <div className='flex flex-col justify-center items-center min-h-screen'>
+      <Button onClick={async(event)=>{
+         event.preventDefault()
+         const response = await fetch("http://localhost:3005/container",{
+             method:"POST",
+             headers: {
+                 "Content-Type": "application/json",
+               },
+             body:JSON.stringify({
+              "image":"ubuntu"
+          }),
+             credentials:"include"
+         });
+         console.log(response)
+      }}>
+        CONTENT
+      </Button>
       <Card className={cn(`w-96`)}>
   <CardHeader>
     <CardTitle>Cloud-ide</CardTitle>

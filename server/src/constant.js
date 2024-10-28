@@ -28,6 +28,7 @@ const REFRESH_TOKEN_EXPIRY=process.env.REFRESH_TOKEN_EXPIRY;
     LEAVE: 'leave',
 };
 
+const IMAGE_NAME = 'server-app-image1'
 
 module.exports = {
     PORT,
@@ -42,5 +43,6 @@ module.exports = {
     REFRESH_TOKEN_SECRET,
     REFRESH_TOKEN_EXPIRY,
     count,
-    ACTIONS
+    ACTIONS,
+IMAGE_NAME
     };

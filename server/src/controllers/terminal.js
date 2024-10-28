@@ -3,7 +3,8 @@
     const { mkdirSync, existsSync, mkdir } = require('fs');
     const chokidar = require("chokidar")
     const fs = require("fs/promises");
-    var path = require("path")
+    const { debounce } = require('lodash');
+ 
 
     module.exports = async(io,socket) =>{
 
@@ -22,7 +23,7 @@
     //     //   path.join(process.cwd(),"/user")
     //     // )
     // }
-
+    let initialized = false;
     var ptyProcess = pty.spawn(shell, [], {
       name: 'xterm-color',
       cols: 80,
@@ -40,21 +41,29 @@
 
 
     ptyProcess.onData(data =>{
-      const cleanData = data
-      // .replace(/\x1B\[[0-9;]*[mK]/g, '')   // ANSI color codes
-      // .replace(/\x1B\]0;.*?\x07/g, '')     // Window title sequences
-      // .replace(/\x1B\[?200[4h]/g, '');      // Bracketed paste mode on/off
-      io.emit('terminal:data',cleanData)
+      if (!initialized) {
+        // Skip the first prompt data to prevent double prompt
+        io.emit('terminal:data', data);
+        initialized = true;
+        
+      } else {
+        io.emit('terminal:data', data);
+      }
     })
 
     socket.on("terminal:write",(data)=>{
       ptyProcess.write(data)
     })
-    socket.on("file:change",async({content,path})=>{
-      console.log('path:::',path)
-                          
-      await fs.writeFile(`./user${path}`,content)
-  });
+     // Handle file content changes from the client
+  socket.on("file:change", debounce(async ({ content, path }) => {
+    const fullPath = path.join(userDir, path);
+    try {
+      await fs.writeFile(fullPath, content);
+      console.log(`File written to ${fullPath}`);
+    } catch (error) {
+      console.error("Failed to write file:", error);
+    }
+  }, 300));
     ptyProcess.onExit((exitCode, signal) => {
       
       console.log(`PTY process exited with code: ${exitCode}, signal: ${signal}`);
