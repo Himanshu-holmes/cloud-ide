@@ -27,7 +27,7 @@ const {Server} = require('socket.io');
 const app = express();
 let proxy;
 
-const server = http.createServer(app);
+// const server = http.createServer(app);
 // const io = new Server(server, {
 //   cors: {
 //     origin: "*",  // Replace with your client URL if different
@@ -316,32 +316,42 @@ container.remove(function (err, data) {
 
 
 app.get('/c', (req, res, next) => {
-  // const containerId = req.params.containerId;
-  // const port = CONTAINER_TO_PORT[containerId];
-
-  // // If containerId has no associated port, skip this middleware
-  // if (!port) {
-  //     return res.status(404).send('Container ID not found');
-  // }
-//  return res.send("hi")
-  // Proxy the request to the target port
-   proxy = createProxyMiddleware({
-      // target: `http://localhost:${port}`,
-      target: `http://localhost:8003`,
-      changeOrigin: true,
-      ws:true,
-      on:{onProxyReq: (proxyReq, req, res) => {
-        console.log(`[HPM] [${req.method}] ${req.url}`);
-    },
-    proxyReqWs :(proxyReq, req, res) => {
-      console.log(`[HPMS] [${req.method}] ${req.url}`);
-  },
-    }
-    
-  });
+  try {
+    // const containerId = req.params.containerId;
+    // const port = CONTAINER_TO_PORT[containerId];
   
-  // Execute the proxy middleware
-  proxy(req, res, next);
+    // // If containerId has no associated port, skip this middleware
+    // if (!port) {
+    //     return res.status(404).send('Container ID not found');
+    // }
+  //  return res.send("hi")
+    // Proxy the request to the target port
+     proxy = createProxyMiddleware({
+        // target: `http://localhost:${port}`,
+        target: `http://localhost:8003`,
+        changeOrigin: true,
+        ws:true,
+        on:{onProxyReq: (proxyReq, req, res) => {
+          console.log(`[HPM] [${req.method}] ${req.url}`);
+      },
+      proxyReqWs :(proxyReq, req, res) => {
+        console.log(`[HPMS] [${req.method}] ${req.url}`);
+    },error: (err, req, res) => {
+      console.error(`Proxy encountered an error: ${err.message}`);
+      res.status(500).send('Proxy encountered an error.');
+    }
+  
+      }
+      
+    });
+    
+    // Execute the proxy middleware
+    proxy(req, res, next);
+    
+  } catch (error) {
+    console.log(error)
+  
+  }
 });
 
 
@@ -356,6 +366,6 @@ app.on('upgrade', (req, socket, head) => {
 
 
 
-server.listen(3005, () => {
+app.listen(3005, () => {
   console.log('listening on *:3005');
 });
