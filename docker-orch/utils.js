@@ -3,6 +3,18 @@ function formattedResponse(status,data,message){
         status,data,message
     }
 };
+
+
+function sendResponse(res, statusCode, data, message) {
+    return res.status(statusCode).json({
+      status: statusCode,
+      data: data,
+      message: message,
+    });
+  }
+
+  
 module.exports = {
-    formattedResponse
+    formattedResponse,
+    sendResponse
 }

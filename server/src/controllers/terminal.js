@@ -4,6 +4,7 @@
     const chokidar = require("chokidar")
     const fs = require("fs/promises");
     const { debounce } = require('lodash');
+    const path = require("path")
  
 
     module.exports = async(io,socket) =>{
@@ -23,17 +24,19 @@
     //     //   path.join(process.cwd(),"/user")
     //     // )
     // }
+    const userDir = process.env.INIT_CWD ? process.env.INIT_CWD + "/user" : path.join(process.cwd(), "user");
+
     let initialized = false;
     var ptyProcess = pty.spawn(shell, [], {
       name: 'xterm-color',
       cols: 80,
       rows: 30,
       // cwd: path.join(process.cwd()),
-      cwd: process.env.INIT_CWD + "/user",
+      cwd: userDir,
       env: process.env
     });
 
-
+  console.log(process.env.INIT_CWD + "/user")
 
 
 

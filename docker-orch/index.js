@@ -6,18 +6,49 @@ const LocalStrategy = require("passport-local").Strategy;
 const bcrypt = require("bcrypt");
 const { JWT_SECRET, JWT_EXPIRES_IN } = require("./constant"); 
 const jwt = require("jsonwebtoken");
-const { formattedResponse } = require("./utils");
+const { formattedResponse, sendResponse } = require("./utils");
 const { containerizeServerRepo } = require("./controllers/container.controller");
 const { IMAGE_NAME } = require("../server/src/constant");
 const { PORT_TO_CONTAINER, CONTAINER_TO_PORT } = require("../containerMapping");
 const cors = require("cors")
 const cookieParser = require("cookie-parser");
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const { dbSetup } = require("./controllers/dbSetup");
+
+const http = require('http');
+const {Server} = require('socket.io');
+
+
+
 
 
 
 
 const app = express();
+let proxy;
+
+const server = http.createServer(app);
+// const io = new Server(server, {
+//   cors: {
+//     origin: "*",  // Replace with your client URL if different
+   
+  
+//   },
+
+// });
+
+
+// io.on('connection', (socket) => {
+//   console.log(`New client connected: ${socket.id}`);
+
+ 
+  
+
+//   // Handle disconnection
+//   socket.on('disconnect', () => {
+//       console.log(`Client disconnected: ${socket.id}`);
+//   });
+// });
 
 app.use(express.json())
 app.use(cors({
@@ -35,7 +66,7 @@ app.post("/register",async(req,res)=>{
     const {email,password} = req.body;
     
   
-    let query  = `select email from user where email = ? `
+    let query  = `select email from users where email = ? `
     const isUserExist =  await executeQuery(query,email);
 
     if (isUserExist.status === 200 && isUserExist.data.length >0){
@@ -43,14 +74,16 @@ app.post("/register",async(req,res)=>{
     }
     let hashedPassword = bcrypt.hashSync(password,10);
     let createUserQuery = `
-      insert into user (email,password) value (?,?)
+      insert into users (email,password) value (?,?)
     `
     let createUser = await executeQuery(createUserQuery,[email,hashedPassword]);
     if (createUser.status !== 200) {
-        return res.status(404).json({message:createUser.message})
+        return sendResponse(res,404,null,createUser.message)
+        //  res.status(404).json({message:createUser.message})
     }
 
-    return res.status(200).json({message:"user created successfully"})
+    return sendResponse(res,200,null,"user created successfully")
+    //  res.status(200).json({message:"user created successfully"})
     
 });
 
@@ -60,7 +93,7 @@ app.post("/login", async (req, res) => {
   
     try {
     
-      let query = `SELECT email, password FROM user WHERE email = ?`;
+      let query = `SELECT email, password FROM users WHERE email = ?`;
       let result = await executeQuery(query, [email]);
   
      
@@ -76,9 +109,10 @@ app.post("/login", async (req, res) => {
       let isPasswordCorrect = await bcrypt.compare(password, hashedPassword);
   
       if (!isPasswordCorrect) {
-        return res.status(401).json({
-          message: "Password incorrect",
-        });
+        return sendResponse(res,401,null,"Password incorrect")
+        //  res.status(401).json({
+        //   message: "Password incorrect",
+        // });
       }
   
      
@@ -120,11 +154,11 @@ function authenticateToken(req, res, next) {
   // using cookies
   const token = req.cookies.token;
 
-  if(!token) return  res.redirect('/login');
-
+  // if(!token) return  res.redirect('/login');
+if(!token) return   res.sendStatus(401); 
   
     jwt.verify(token, JWT_SECRET, (err, user) => {
-      if (err) return  res.redirect('/login');
+      // if (err) return  res.redirect('/login');
       req.user = user; 
       next();
     });
@@ -149,22 +183,51 @@ async function start(){
 }
 // start()
 
-
+app.get("/dbSetup",
+  // authenticateToken,
+  async(req,res)=>{
+    let response = await dbSetup();
+    if(response.status!==200){
+      return sendResponse(res,400,null,response.message)
+      // res.status(400).json({
+      //   message:response.message
+      // })
+    }
+    return sendResponse(res,200,response,"successs")
+    // res.status(200).json({
+    //   response
+    // })
+})
 app.post("/container",authenticateToken,async(req,res)=>{
 
  await containerizeServerRepo(docker);
 
+ const getAllPorts  = await executeQuery(`SELECT DISTINCT docker_id,port FROM users;`);
+
+ if(getAllPorts.status !== 200){
+   return sendResponse(res,400,null,getAllPorts.message)
+ //    res.status(400).json({
+ //     message:getAllPorts.message
+ // })
+ };
+
+ getAllPorts.data.map((item)=>{
+   CONTAINER_TO_PORT[item.docker_id] = item.port;
+   PORT_TO_CONTAINER[item.port] = item.docker_id
+ })
+ 
 
 
 
     // lets first check if there is any container exists in db
-    let query = `select docker_id from user where email = ?`;
+    let query = `select docker_id from users where email = ?`;
     if(req.user){
         let response =await executeQuery(query,[req.user?.email]);
         if(response.status !== 200){
-            return res.json({
-                message:response.message
-            })
+            return sendResponse(res,400,null,response.message)
+            // res.json({
+            //     message:response.message
+            // })
         };
         if (response.data[0]?.docker_id){
           console.log(response.data)
@@ -181,16 +244,16 @@ app.post("/container",authenticateToken,async(req,res)=>{
         //   container.start(function (err, data) {
         //     console.log(data);
         //   });
-           res.json({
-            message:"container already exist with this user"
-          })
+         sendResponse(res,200,null,"container already exist with this user")
           return
         }
     }
+   
+
   console.log(CONTAINER_TO_PORT);
 //  see available ports
     const availablePort = (()=>{
-        for(let i=8001; i<8999; i++){
+        for(let i=8000; i<8999; i++){
            if(PORT_TO_CONTAINER[i])
            {continue}
            else{
@@ -201,7 +264,8 @@ app.post("/container",authenticateToken,async(req,res)=>{
         return null;
     })();
     if (!availablePort) {
-        return res.status(500).json({ message: "No available ports" });
+        return sendResponse(res,500,null, "No available ports")
+        // res.status(500).json({ message: "No available ports" });
     }
   
   console.log("available port ::", availablePort)
@@ -223,8 +287,8 @@ app.post("/container",authenticateToken,async(req,res)=>{
  console.log(PORT_TO_CONTAINER);
  console.log(CONTAINER_TO_PORT);
 
-  query = `update user set docker_id = ? where email = ?`
- let storeContainerIdResponse = await executeQuery(query,[container.id,req.user?.email]);
+  query = `update users set docker_id = ? , port = ? where email = ?`
+ let storeContainerIdResponse = await executeQuery(query,[container.id,availablePort,req.user?.email]);
 
  if(storeContainerIdResponse.status !== 200){
 
@@ -251,27 +315,47 @@ container.remove(function (err, data) {
 });
 
 
-app.use('/:containerId/', (req, res, next) => {
-  const containerId = req.params.containerId;
-  const port = CONTAINER_TO_PORT[containerId];
+app.get('/c', (req, res, next) => {
+  // const containerId = req.params.containerId;
+  // const port = CONTAINER_TO_PORT[containerId];
 
-  // If containerId has no associated port, skip this middleware
-  if (!port) {
-      return res.status(404).send('Container ID not found');
-  }
-
+  // // If containerId has no associated port, skip this middleware
+  // if (!port) {
+  //     return res.status(404).send('Container ID not found');
+  // }
+//  return res.send("hi")
   // Proxy the request to the target port
-  const proxy = createProxyMiddleware({
-      target: `http://localhost:${port}`,
+   proxy = createProxyMiddleware({
+      // target: `http://localhost:${port}`,
+      target: `http://localhost:8003`,
       changeOrigin: true,
-      pathRewrite: { [`^/${containerId}`]: '' }, // Remove containerId from the path if needed
+      ws:true,
+      on:{onProxyReq: (proxyReq, req, res) => {
+        console.log(`[HPM] [${req.method}] ${req.url}`);
+    },
+    proxyReqWs :(proxyReq, req, res) => {
+      console.log(`[HPMS] [${req.method}] ${req.url}`);
+  },
+    }
+    
   });
   
   // Execute the proxy middleware
   proxy(req, res, next);
 });
 
-const port = 3005
-app.listen(port,()=>{
-    console.log(`app is listening on ${port}`)
-})
+
+// Set up a WebSocket proxy for Socket.IO connections
+app.on('upgrade', (req, socket, head) => {
+ 
+
+ 
+    proxy.upgrade(req, socket, head);
+  }
+);
+
+
+
+server.listen(3005, () => {
+  console.log('listening on *:3005');
+});

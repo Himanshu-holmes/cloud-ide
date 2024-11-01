@@ -16,7 +16,7 @@ const RepoCode = () => {
   const [selectedFile, setSelectedFile] = useState("")
   
   const getFileTree = async()=>{
-    const response = await fetch("http://localhost:3000/files");
+    const response = await fetch("http://localhost:8000/files");
     const result = await response.json();
     console.log("filetree == ",result)
     setFileTree(result.tree)
