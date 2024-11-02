@@ -17,6 +17,7 @@ const { dbSetup } = require("./controllers/dbSetup");
 
 const http = require('http');
 const {Server} = require('socket.io');
+const { error } = require("console");
 
 
 
@@ -25,30 +26,30 @@ const {Server} = require('socket.io');
 
 
 const app = express();
-let proxy;
 
-// const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: {
-//     origin: "*",  // Replace with your client URL if different
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",  // Replace with your client URL if different
    
   
-//   },
+  },
 
-// });
+});
 
 
-// io.on('connection', (socket) => {
-//   console.log(`New client connected: ${socket.id}`);
+io.on('connection', (socket) => {
+  console.log(`New client connected: ${socket.id}`);
 
  
   
 
-//   // Handle disconnection
-//   socket.on('disconnect', () => {
-//       console.log(`Client disconnected: ${socket.id}`);
-//   });
-// });
+  // Handle disconnection
+  socket.on('disconnect', () => {
+      console.log(`Client disconnected: ${socket.id}`);
+  });
+});
 
 app.use(express.json())
 app.use(cors({
@@ -61,6 +62,41 @@ const docker = new Docker(
       socketPath: "/home/abhi/.docker/desktop/docker.sock"
   }
 );
+let proxy;
+const createProxy = (targetPort) => {
+  return createProxyMiddleware({
+    target: `http://localhost:${targetPort}`,
+    changeOrigin: true,
+    ws: true,
+    on: {
+      proxyReq: (proxyReq, req, res) => {
+        /* handle proxyReq */
+        console.log(`[Proxy] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
+      },
+      proxyReqWs: (proxyRes, req, res) => {
+        /* handle proxyResWs */
+        console.log(`[Proxy WS] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
+
+      },
+      error: (err, req, res) => {
+        /* handle error */
+        console.log("error from proxy",error)
+        res.status(500).send('Proxy encountered an error.');
+      },
+    },
+  });
+};
+// onProxyReq: (proxyReq, req, res) => {
+//   console.log(`[Proxy] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
+// },
+// onProxyReqWs: (proxyReq, req, res) => {
+//   console.log(`[Proxy WS] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
+// },
+// onError: (err, req, res) => {
+//   console.error(`Proxy error: ${err.message}`);
+//   res.status(500).send('Proxy encountered an error.');
+// }
+
 
 app.post("/register",async(req,res)=>{
     const {email,password} = req.body;
@@ -315,38 +351,21 @@ container.remove(function (err, data) {
 });
 
 
-app.get('/c', (req, res, next) => {
+app.use('/c/:containerId', (req, res, next) => {
   try {
-    // const containerId = req.params.containerId;
-    // const port = CONTAINER_TO_PORT[containerId];
+    const containerId = req.params.containerId;
+    const port = CONTAINER_TO_PORT[containerId];
   
-    // // If containerId has no associated port, skip this middleware
+    // If containerId has no associated port, skip this middleware
     // if (!port) {
     //     return res.status(404).send('Container ID not found');
     // }
   //  return res.send("hi")
     // Proxy the request to the target port
-     proxy = createProxyMiddleware({
-        // target: `http://localhost:${port}`,
-        target: `http://localhost:8003`,
-        changeOrigin: true,
-        ws:true,
-        on:{onProxyReq: (proxyReq, req, res) => {
-          console.log(`[HPM] [${req.method}] ${req.url}`);
-      },
-      proxyReqWs :(proxyReq, req, res) => {
-        console.log(`[HPMS] [${req.method}] ${req.url}`);
-    },error: (err, req, res) => {
-      console.error(`Proxy encountered an error: ${err.message}`);
-      res.status(500).send('Proxy encountered an error.');
-    }
-  
-      }
-      
-    });
+    proxy = createProxy("8003");
+  //  upgrade this proxy to websocket
+  proxy(req, res, next);
     
-    // Execute the proxy middleware
-    proxy(req, res, next);
     
   } catch (error) {
     console.log(error)
@@ -356,16 +375,35 @@ app.get('/c', (req, res, next) => {
 
 
 // Set up a WebSocket proxy for Socket.IO connections
+
+// WebSocket Upgrade Handling
+
 app.on('upgrade', (req, socket, head) => {
- 
+  // const containerId = req.url.split('/')[1];
+  // const port = CONTAINER_TO_PORT[containerId];
 
- 
-    proxy.upgrade(req, socket, head);
-  }
-);
+  // if (port) {
+
+    proxy.upgrade(req, socket, head)
+  // } else {
+  //   socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+  //   socket.end();
+  // }
+});
+server.on('upgrade', (req, socket, head) => {
+  // const containerId = req.url.split('/')[1];
+  // const port = CONTAINER_TO_PORT[containerId];
+
+  // if (port) {
+
+  proxy.upgrade(req, socket, head)
+  // } else {
+  //   socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+  //   socket.end();
+  // }
+});
 
 
-
-app.listen(3005, () => {
+server.listen(3005, () => {
   console.log('listening on *:3005');
 });

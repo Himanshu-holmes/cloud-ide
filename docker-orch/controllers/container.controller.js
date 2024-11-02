@@ -7,13 +7,13 @@ async function containerizeServerRepo(docker) {
   try {
     const imageName = IMAGE_NAME;
     const serverRepoPath = path.resolve(__dirname, '../../server'); // Adjust if `server` is not in the parent directory
-    console.log(serverRepoPath)
+    // console.log(serverRepoPath)
 
     // // Check if the image already exists
     const images = await docker.listImages();
-    console.log("docker list",images)
+    // console.log("docker list",images)
     const imageExists = images.some(image => image.RepoTags && image.RepoTags.includes(`${imageName}:latest`));
-console.log("isImageExist",imageExists)
+// console.log("isImageExist",imageExists)
     if (!imageExists) {
       console.log('Image not found. Building the image...');
 
