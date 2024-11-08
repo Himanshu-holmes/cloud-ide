@@ -1,6 +1,6 @@
 
 const path = require('path');
-const { IMAGE_NAME } = require('../../server/src/constant');
+const { IMAGE_NAME } = require('./../constant');
 
 
 async function containerizeServerRepo(docker) {

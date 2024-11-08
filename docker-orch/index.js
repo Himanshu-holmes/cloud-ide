@@ -8,7 +8,7 @@ const { JWT_SECRET, JWT_EXPIRES_IN } = require("./constant");
 const jwt = require("jsonwebtoken");
 const { formattedResponse, sendResponse } = require("./utils");
 const { containerizeServerRepo } = require("./controllers/container.controller");
-const { IMAGE_NAME } = require("../server/src/constant");
+const { IMAGE_NAME } = require("./constant")
 const { PORT_TO_CONTAINER, CONTAINER_TO_PORT } = require("../containerMapping");
 const cors = require("cors")
 const cookieParser = require("cookie-parser");
@@ -52,9 +52,7 @@ app.options('*', cors({
 app.use(cookieParser());
 
 const docker = new Docker(
-  {
-      socketPath: "/home/abhi/.docker/desktop/docker.sock"
-  }
+  
 );
 
 // const createProxy = (targetPort) => {
