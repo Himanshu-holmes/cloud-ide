@@ -58,8 +58,8 @@
       ptyProcess.write(data)
     })
      // Handle file content changes from the client
-  socket.on("file:change", debounce(async ({ content, path }) => {
-    const fullPath = path.join(userDir, path);
+  socket.on("file:change", debounce(async ({ content, filePath }) => {
+    const fullPath = path.join(userDir, filePath);
     try {
       await fs.writeFile(fullPath, content);
       console.log(`File written to ${fullPath}`);

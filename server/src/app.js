@@ -13,7 +13,7 @@ const { generateFileTree } = require('./controllers/fileController/file.controll
 
 
 app.use(cors({
-    origin:CORS_ORIGIN,
+    origin:["http://localhost:3005","http://localhost:5173"],
     credentials:true
 }));
 app.use(express.json({limit:"16kb"}));

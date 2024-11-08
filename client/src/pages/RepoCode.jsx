@@ -13,10 +13,28 @@ import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 const RepoCode = () => {
   // files
   const [fileTree,setFileTree] = useState({});
-  const [selectedFile, setSelectedFile] = useState("")
+  const [selectedFile, setSelectedFile] = useState("");
+
+  const getContainerDetails = async() =>{
+    const response = await fetch("http://localhost:3005/container",{
+      method:"POST",
+      headers:{
+        "content-type":"application/json",
+      },
+      body: JSON.stringify({
+
+      }),
+        credentials: 'include'
+    });
+    const result = await response.json();
+    console.log(response)
+  }
+  useEffect(()=>{
+    getContainerDetails()
+  },[])
   
   const getFileTree = async()=>{
-    const response = await fetch("http://localhost:8000/files");
+    const response = await fetch("http://localhost:8003/files");
     const result = await response.json();
     console.log("filetree == ",result)
     setFileTree(result.tree)

@@ -2,10 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, useMonaco } from '@monaco-editor/react';
 import { LanguageSelector } from './LanguageSelector';
 import { ACTIONS, CODE_SNIPPETS } from '@/constants';
+import { getCookie } from '@/lib/cookie';
 
 const CodeEditor = ({ socketRef, roomId,onCodeChange, selectedFile,isSaved,setIsSaved }) => {
   const editorRef = useRef(null);
   const monaco = useMonaco();
+  const token = getCookie("token");
+
+  console.log("cookie from code editor",token)
 
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
@@ -69,8 +73,9 @@ useEffect(()=>{
         console.log("code saved");
         socketRef.current.emit("file:change",{
           content:code,
-          path:selectedFile
-        })
+          filePath:selectedFile
+        });
+        setIsSaved(true)
       },5000);
       return ()=>{
         clearTimeout(timer);
@@ -80,7 +85,15 @@ useEffect(()=>{
 
   const getFileContent = useCallback(async() =>{
     if(!selectedFile) return
-    const response = await fetch(`http://localhost:3000/file/content?path=${selectedFile}`)
+    const response = await fetch(`http://localhost:3005/09cae955514dace6686f91f976d244eb9865eed09e68cd1bb9c5f1936d22f591/file/content?path=${selectedFile}`,{
+      credentials:"include",
+      headers:{
+        "Content-Type":"application/json",
+        "Access-Control-Allow-Origin": "http://locahost:3005"
+
+      },
+     
+    })
     let result = await response.json().then((res)=>res.content);
     console.log("file content from backend  ================== ",result);
     setSelectedFileContent(result);

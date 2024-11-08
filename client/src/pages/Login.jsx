@@ -41,7 +41,8 @@ export function Login() {
       });
       if(response.ok){
         toast.success("logged in successfully");
-        dispatch(setLogIn())
+        dispatch(setLogIn());
+        
         navigate("/");
 
       

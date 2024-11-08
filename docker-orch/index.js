@@ -12,12 +12,13 @@ const { IMAGE_NAME } = require("../server/src/constant");
 const { PORT_TO_CONTAINER, CONTAINER_TO_PORT } = require("../containerMapping");
 const cors = require("cors")
 const cookieParser = require("cookie-parser");
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const httpProxy = require('http-proxy');
 const { dbSetup } = require("./controllers/dbSetup");
 
 const http = require('http');
-const {Server} = require('socket.io');
+
 const { error } = require("console");
+
 
 
 
@@ -27,65 +28,58 @@ const { error } = require("console");
 
 const app = express();
 
-
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*",  // Replace with your client URL if different
-   
-  
-  },
-
-});
 
 
-io.on('connection', (socket) => {
-  console.log(`New client connected: ${socket.id}`);
 
- 
-  
 
-  // Handle disconnection
-  socket.on('disconnect', () => {
-      console.log(`Client disconnected: ${socket.id}`);
-  });
-});
+
+
+
+
 
 app.use(express.json())
 app.use(cors({
-  origin:["http://localhost:5173"],
+  origin:"http://localhost:5173",
   credentials:true
-}))
+}));
+app.options('*', cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 app.use(cookieParser());
+
 const docker = new Docker(
   {
       socketPath: "/home/abhi/.docker/desktop/docker.sock"
   }
 );
-let proxy;
-const createProxy = (targetPort) => {
-  return createProxyMiddleware({
-    target: `http://localhost:${targetPort}`,
-    changeOrigin: true,
-    ws: true,
-    on: {
-      proxyReq: (proxyReq, req, res) => {
-        /* handle proxyReq */
-        console.log(`[Proxy] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
-      },
-      proxyReqWs: (proxyRes, req, res) => {
-        /* handle proxyResWs */
-        console.log(`[Proxy WS] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
 
-      },
-      error: (err, req, res) => {
-        /* handle error */
-        console.log("error from proxy",error)
-        res.status(500).send('Proxy encountered an error.');
-      },
-    },
-  });
-};
+// const createProxy = (targetPort) => {
+//   return createProxyMiddleware({
+//     target: `http://localhost:${targetPort}`,
+//     changeOrigin: true,
+//     ws: true,
+//     on: {
+//       proxyReq: (proxyReq, req, res) => {
+//         /* handle proxyReq */
+//         console.log(`[Proxy] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
+//       },
+//       proxyReqWs: (proxyRes, req, res) => {
+//         /* handle proxyResWs */
+//         console.log(`[Proxy WS] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
+
+//       },
+//       error: (err, req, res) => {
+//         /* handle error */
+//         console.log("error from proxy",error)
+//         res.status(500).send('Proxy encountered an error.');
+//       },
+//     },
+//   });
+// };
 // onProxyReq: (proxyReq, req, res) => {
 //   console.log(`[Proxy] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
 // },
@@ -96,6 +90,7 @@ const createProxy = (targetPort) => {
 //   console.error(`Proxy error: ${err.message}`);
 //   res.status(500).send('Proxy encountered an error.');
 // }
+
 
 
 app.post("/register",async(req,res)=>{
@@ -122,6 +117,7 @@ app.post("/register",async(req,res)=>{
     //  res.status(200).json({message:"user created successfully"})
     
 });
+
 
 
 app.post("/login", async (req, res) => {
@@ -160,9 +156,10 @@ app.post("/login", async (req, res) => {
   
       return res.status(200).cookie("token", token, {
         expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day from now
-        httpOnly: true, // Makes the cookie accessible only to the web server
+        httpOnly: false, // Makes the cookie accessible only to the web server
         secure: true, // Ensures it's only sent over HTTPS in production
-        sameSite: "none" // Controls cross-site request behavior
+        sameSite: "none", // Controls cross-site request behavior
+        path:"/"
       })
       .json({
         message: "Login successful",
@@ -280,7 +277,9 @@ app.post("/container",authenticateToken,async(req,res)=>{
         //   container.start(function (err, data) {
         //     console.log(data);
         //   });
-         sendResponse(res,200,null,"container already exist with this user")
+         sendResponse(res,200,{containerId,
+          port:CONTAINER_TO_PORT[containerId]
+         },"container already exist with this user")
           return
         }
     }
@@ -346,9 +345,35 @@ container.remove(function (err, data) {
     sameSite: "none" // Controls cross-site request behavior
   })
   .json({
-    container:container.id
+    containerId:container.id,
+    port:CONTAINER_TO_PORT[container.id]
   })
 });
+
+
+app.use("/:containerId/file/content",authenticateToken,(req,res)=>{
+  const containerId = req.params.containerId;
+    const port = CONTAINER_TO_PORT[containerId];
+    const filePath = req.query.path
+  
+
+    const proxy = httpProxy.createProxyServer({
+      target: 'http://localhost:8003',
+      ws: true,
+    });
+  //  upgrade this proxy to websocket
+  proxy.web(req, res, { target: `http://localhost:8003/file/content/` ,
+    ws:true,
+    changeOrigin:true,
+    
+  }, (err) => {
+    console.error("Proxy Error:", err);
+    res.writeHead(500, { "Content-Type": "text/plain" });
+    res.end("Proxy Error");
+  });
+    
+    
+})
 
 
 app.use('/c/:containerId', (req, res, next) => {
@@ -362,9 +387,20 @@ app.use('/c/:containerId', (req, res, next) => {
     // }
   //  return res.send("hi")
     // Proxy the request to the target port
-    proxy = createProxy("8003");
+    const proxy = httpProxy.createProxyServer({
+      target: 'http://localhost:8003',
+      ws: true,
+    });
   //  upgrade this proxy to websocket
-  proxy(req, res, next);
+  proxy.web(req, res, { target: `http://localhost:8003/` ,
+    ws:true,
+    changeOrigin:true,
+    
+  }, (err) => {
+    console.error("Proxy Error:", err);
+    res.writeHead(500, { "Content-Type": "text/plain" });
+    res.end("Proxy Error");
+  });
     
     
   } catch (error) {
@@ -375,32 +411,34 @@ app.use('/c/:containerId', (req, res, next) => {
 
 
 // Set up a WebSocket proxy for Socket.IO connections
-
+// 
 // WebSocket Upgrade Handling
 
-app.on('upgrade', (req, socket, head) => {
-  // const containerId = req.url.split('/')[1];
-  // const port = CONTAINER_TO_PORT[containerId];
 
-  // if (port) {
-
-    proxy.upgrade(req, socket, head)
-  // } else {
-  //   socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
-  //   socket.end();
-  // }
-});
 server.on('upgrade', (req, socket, head) => {
-  // const containerId = req.url.split('/')[1];
-  // const port = CONTAINER_TO_PORT[containerId];
+  
 
-  // if (port) {
+  const urlParams = new URL(`http://l`+req.url);
+const containerId = urlParams.searchParams.get("id")
+const port = CONTAINER_TO_PORT[containerId];
 
-  proxy.upgrade(req, socket, head)
-  // } else {
-  //   socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
-  //   socket.end();
-  // }
+  if(port ){
+
+  
+    const proxy = httpProxy.createProxyServer({
+      target: `http://localhost:${port}`,
+      ws: true,
+      
+    });
+
+    proxy.ws(req, socket, head);
+  }else {
+    socket.write('HTTP/1.1 404 something wrong Not Found\r\n\r\n',(err)=>{
+      console.log(err)
+    });
+    socket.end();
+  }
+
 });
 
 
