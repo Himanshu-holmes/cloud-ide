@@ -48,7 +48,7 @@ bower_components/
 
 # Docker
 docker-compose.yml
-Dockerfile
+
 docker-compose.override.yml
 
 # Test coverage files
