@@ -42,8 +42,9 @@ export function Login() {
       if(response.ok){
         toast.success("logged in successfully");
         dispatch(setLogIn());
-        
-        navigate("/");
+        let result =await response.json();
+        console.log("result from login route",result)
+        navigate(`/editor/${result.roomId}`);
 
       
       }else{

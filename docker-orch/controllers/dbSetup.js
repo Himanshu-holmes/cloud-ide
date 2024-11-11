@@ -4,6 +4,7 @@ const { formattedResponse } = require("../utils");
 const createTableUsers = `
 CREATE TABLE IF NOT EXISTS users (
  id INT PRIMARY KEY AUTO_INCREMENT,
+ username VARCHAR(255) UNIQUE,
  email VARCHAR(255) UNIQUE,
  password VARCHAR(255),
  docker_id VARCHAR(255) UNIQUE,

@@ -1,5 +1,7 @@
 import { Button } from '@/components/ui/button';
-import { ACTIONS } from '@/constants';
+import { ACTIONS, inviteLink } from '@/constants';
+import { getCookie } from '@/lib/cookie';
+
 import CodeEditor from '@/myComponent/codeArea/CodeEditor';
 import FileTree from '@/myComponent/fileArea/FileTree';
 
@@ -11,12 +13,21 @@ import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 
 const RepoCode = () => {
+  const token = getCookie("token");
+  const curUsername = getCookie("username");
+  
+  // container
+  const [containerDetails,setContainerDetails] = useState({containerId:null,
+    port:null
+  });
   // files
   const [fileTree,setFileTree] = useState({});
   const [selectedFile, setSelectedFile] = useState("");
 
   const getContainerDetails = async() =>{
-    const response = await fetch("http://localhost:3005/container",{
+   const isInvite = useUrlParam("invite");
+const containerLink = isInvite ? `http://localhost:3005/container?roomId=${roomId}` : `http://localhost:3005/container`
+    const response = await fetch(containerLink,{
       method:"POST",
       headers:{
         "content-type":"application/json",
@@ -27,14 +38,24 @@ const RepoCode = () => {
         credentials: 'include'
     });
     const result = await response.json();
-    console.log(response)
+    console.log("container",result.data)
+    setContainerDetails({
+      containerId:result.data.containerId,
+      port:result.data.port
+    })
   }
   useEffect(()=>{
     getContainerDetails()
   },[])
-  
+ 
+  const useUrlParam = (param) => {
+    const queryParams = new URLSearchParams(location.search);
+    return queryParams.get(param);
+  };
   const getFileTree = async()=>{
-    const response = await fetch("http://localhost:8003/files");
+    if(!containerDetails.port)return
+    
+    const response = await fetch(`http://localhost:${containerDetails.port}/files`);
     const result = await response.json();
     console.log("filetree == ",result)
     setFileTree(result.tree)
@@ -43,13 +64,15 @@ const RepoCode = () => {
   useEffect(()=>{
     getFileTree();
     
-  },[])
+  },[containerDetails])
   // code editor
   const socketRef = useRef(null);
   const codeRef = useRef(null);
-  const location = useLocation();
+  const location = useLocation()
+ 
   const navigate = useNavigate();
   const { roomId } = useParams();
+
 
   const [clients,setClients] = useState([
     
@@ -57,10 +80,16 @@ const RepoCode = () => {
 
 
   useEffect(() => {
-    if(!location.state) return 
+    console.log("username ==============================",curUsername)
+    if(!curUsername) return 
     console.log("current socket",socketRef.current);
   const init = async () => {
-    socketRef.current = await initSocket();
+    console.log("container details ===================",containerDetails)
+    if(!containerDetails.containerId)return
+    const isInviteLink = useUrlParam("invite")
+    console.log("isInvite ======================>>>>>>>>>>>>>>>>>>>",isInviteLink)
+    
+    socketRef.current = await initSocket(containerDetails.containerId,isInviteLink);
     socketRef.current.on("connect_error",(err)=>handleError(err));
     socketRef.current.on("connect_failed",(err)=>handleError(err));
     console.log("socket connected",socketRef.current);
@@ -73,17 +102,17 @@ const RepoCode = () => {
     }
     socketRef.current.emit(ACTIONS.JOIN,{
       roomId,
-      username: location.state?.username
+      username: curUsername
     })
     // listening for joined event
     socketRef.current.on(ACTIONS.JOINED,({ clients,
       username,
       socketId})=>{
-        if(username !== location.state?.username){
+        if(username !== curUsername){
           toast.success(`${username} joined the room`);
           console.log(`$username joined`)
         }
-        console.log("socket init ran")
+        console.log("socket clients ",clients)
         setClients(clients)
         console.log("syncing code",codeRef.current)
         
@@ -111,9 +140,9 @@ return () => {
   socketRef.current?.off("file:refresh",getFileTree)
 };
 
-  }, []);
+  }, [containerDetails.containerId]);
 
-  if(!location.state){
+  if(!curUsername){
     return <Navigate to="/"/>
   }
 
@@ -178,7 +207,7 @@ return () => {
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizingLeft, isResizingRight]);
-
+  console.log("container details",containerDetails)
   return (
     <div className="resizable-layout flex h-[100vh]">
       <div className="file-explorer bg-[#03152b] border-r-2 border-solid border-[#ccc] overflow-auto p-2" style={{ width: leftWidth }}>
@@ -203,7 +232,7 @@ return () => {
         {/* */}
         <Button className="dark:bg-slate-300 p-4" onClick={(e)=>{
           if(!roomId) return
-          navigator.clipboard.writeText(roomId)
+          navigator.clipboard.writeText(inviteLink+roomId)
           .then(()=>{
             toast.success('Room ID copied to clipboard')
           })
@@ -226,7 +255,7 @@ return () => {
         {selectedFile && <p>{selectedFile.replaceAll("/"," >  ")}</p>}
         {<p>{isSaved ? "Saved":"Unsaved"}</p>}
         {/* editor  */}
-        <CodeEditor  setIsSaved={setIsSaved} isSaved={isSaved} selectedFile={selectedFile}  socketRef={socketRef} roomId={roomId} onCodeChange={
+        <CodeEditor containerDetails={containerDetails}  setIsSaved={setIsSaved} isSaved={isSaved} selectedFile={selectedFile}  socketRef={socketRef} roomId={roomId} onCodeChange={
           (code)=>{
             codeRef.current = code;
           }               
@@ -236,7 +265,7 @@ return () => {
       <div className="terminal bg-[#03152b] overflow-hidden" style={{ width: rightWidth }}>
         <h2>Terminal</h2>
         {/* terminal*/}
-        <TerminalComp/>
+        <TerminalComp containerDetails={containerDetails}/>
       </div>
     </div>
   );

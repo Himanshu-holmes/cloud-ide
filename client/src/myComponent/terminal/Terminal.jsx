@@ -4,7 +4,7 @@ import { io } from 'socket.io-client'; // Import Socket.IO client
 import { Terminal } from '@xterm/xterm';
 import { initSocket } from '@/socket';
 
-function TerminalComp() {
+function TerminalComp({containerDetails}) {
   const terminalRef = useRef(null); // Reference to the DOM element
   const termInstance = useRef(null);
   const isRender = useRef(false)
@@ -13,12 +13,11 @@ function TerminalComp() {
 
   useEffect(() => {
     if(isRender.current)return;
-    console.log("terminal rendered ==================");
-    isRender.current = true
+ 
     // Initialize Socket.IO connection
     async function init(){
-      
-    const newSocket =   await initSocket();// Connect to the backend
+     if(!containerDetails.containerId) return
+    const newSocket =   await initSocket(containerDetails.containerId);// Connect to the backend
     socket.current = newSocket;
 
    
@@ -28,6 +27,8 @@ function TerminalComp() {
       termInstance.current = new Terminal({
         rows: 24,
         cursorBlink: true,
+       
+        
       });
     }
 
@@ -48,6 +49,7 @@ function TerminalComp() {
      socket.current.on("terminal:data",(data)=>{
       termInstance.current.write(data);
      })
+     isRender.current = true    
     // }
 
     // Listen for messages from the server
@@ -57,14 +59,15 @@ function TerminalComp() {
       // });
     // }
     }
-    init();       
+    init();  
+    
     // Cleanup on component unmount
     return () => {
       socket.current?.off("terminal:data")
       socket.current?.disconnect();
       termInstance.current?.dispose(); // Clean up the terminal instance
     };
-  }, []);
+  }, [containerDetails]);
 
   return (
     <div id='terminal'

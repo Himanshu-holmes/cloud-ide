@@ -14,10 +14,13 @@ const cors = require("cors")
 const cookieParser = require("cookie-parser");
 const httpProxy = require('http-proxy');
 const { dbSetup } = require("./controllers/dbSetup");
+const { v4: uuidv4 } = require('uuid');
+
 
 const http = require('http');
 
 const { error } = require("console");
+const { insertRoomId } = require("./models/rooms.model");
 
 
 
@@ -55,57 +58,25 @@ const docker = new Docker(
   
 );
 
-// const createProxy = (targetPort) => {
-//   return createProxyMiddleware({
-//     target: `http://localhost:${targetPort}`,
-//     changeOrigin: true,
-//     ws: true,
-//     on: {
-//       proxyReq: (proxyReq, req, res) => {
-//         /* handle proxyReq */
-//         console.log(`[Proxy] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
-//       },
-//       proxyReqWs: (proxyRes, req, res) => {
-//         /* handle proxyResWs */
-//         console.log(`[Proxy WS] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
-
-//       },
-//       error: (err, req, res) => {
-//         /* handle error */
-//         console.log("error from proxy",error)
-//         res.status(500).send('Proxy encountered an error.');
-//       },
-//     },
-//   });
-// };
-// onProxyReq: (proxyReq, req, res) => {
-//   console.log(`[Proxy] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
-// },
-// onProxyReqWs: (proxyReq, req, res) => {
-//   console.log(`[Proxy WS] [${req.method}] ${req.url} -> http://localhost:${targetPort}`);
-// },
-// onError: (err, req, res) => {
-//   console.error(`Proxy error: ${err.message}`);
-//   res.status(500).send('Proxy encountered an error.');
-// }
-
-
 
 app.post("/register",async(req,res)=>{
-    const {email,password} = req.body;
+    const {username,email,password} = req.body;
     
+    if(!username||!email||!password){
+   return sendResponse(res,400,null,"username,email and password is required")
+    }
   
-    let query  = `select email from users where email = ? `
+    let query  = `select email,username from users where email = ? OR username = ?`;
     const isUserExist =  await executeQuery(query,email);
 
     if (isUserExist.status === 200 && isUserExist.data.length >0){
-        return res.status(404).json({message:"user already exists"})
+        return res.status(404).json({message:"user already exists "})
     }
     let hashedPassword = bcrypt.hashSync(password,10);
     let createUserQuery = `
-      insert into users (email,password) value (?,?)
+      insert into users (username,email,password) value (?,?,?)
     `
-    let createUser = await executeQuery(createUserQuery,[email,hashedPassword]);
+    let createUser = await executeQuery(createUserQuery,[username,email,hashedPassword]);
     if (createUser.status !== 200) {
         return sendResponse(res,404,null,createUser.message)
         //  res.status(404).json({message:createUser.message})
@@ -123,7 +94,9 @@ app.post("/login", async (req, res) => {
   
     try {
     
-      let query = `SELECT email, password FROM users WHERE email = ?`;
+      let query = `SELECT users.id,username, email, password,room_name FROM users
+      left join rooms on users.id = rooms.creator_id
+      WHERE email = ?`;
       let result = await executeQuery(query, [email]);
   
      
@@ -144,10 +117,20 @@ app.post("/login", async (req, res) => {
         //   message: "Password incorrect",
         // });
       }
-  
+    let {room_name,id} = result.data[0]
+    if(!room_name){
+      room_name = uuidv4();
+      let insertRoomResponse = await insertRoomId(id,room_name);
+      if(insertRoomResponse.status!==200){
+        return sendResponse(res,400,null,insertRoomResponse.message)
+      }
+    }
+     const username = result.data[0].username
      
       const token = jwt.sign(
-        { email: result.data[0].email }, 
+        { email: result.data[0].email,
+          username
+         }, 
         JWT_SECRET, 
         { expiresIn: JWT_EXPIRES_IN }
       );
@@ -159,9 +142,17 @@ app.post("/login", async (req, res) => {
         sameSite: "none", // Controls cross-site request behavior
         path:"/"
       })
+      .cookie("username",username,{
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day from now
+        httpOnly: false, // Makes the cookie accessible only to the web server
+        secure: true, // Ensures it's only sent over HTTPS in production
+        sameSite: "none", // Controls cross-site request behavior
+        path:"/"
+      })
       .json({
         message: "Login successful",
-        token: token, 
+         roomId:room_name,
+        
       })
     } catch (error) {
       console.error("Error during login:", error);
@@ -190,6 +181,7 @@ if(!token) return   res.sendStatus(401);
   
     jwt.verify(token, JWT_SECRET, (err, user) => {
       // if (err) return  res.redirect('/login');
+      console.log(user)
       req.user = user; 
       next();
     });
@@ -230,7 +222,22 @@ app.get("/dbSetup",
     // })
 })
 app.post("/container",authenticateToken,async(req,res)=>{
+ const roomId = req.query.roomId
+ if(roomId){
+  let query = `SELECT docker_id FROM rooms
+left join users on rooms.creator_id = users.id
+where rooms.room_name = ?`
+const result = await executeQuery(query,[roomId])
+if(result.status !== 200)return sendResponse(res,400,null,result.message);
+let containerId = result.data[0].docker_id
+sendResponse(res,200,{containerId,
+  port:CONTAINER_TO_PORT[containerId]
+ },"container already exist with this user")
+ return
 
+
+ }
+ console.log("roomId",roomId); 
  await containerizeServerRepo(docker);
 
  const getAllPorts  = await executeQuery(`SELECT DISTINCT docker_id,port FROM users;`);
@@ -267,7 +274,7 @@ app.post("/container",authenticateToken,async(req,res)=>{
           let container = await docker.getContainer(containerId);
           
           container.inspect(function (err, data) {
-            console.log("inspect",data);
+            // console.log("inspect",data);
             if(data.State.Status !== "running"){
                 container.start()
             }
@@ -340,7 +347,8 @@ container.remove(function (err, data) {
     expires: new Date(Date.now() + 730 *24 * 60 * 60 * 1000), // 1 day from now
     httpOnly: false, // Makes the cookie accessible only to the web server
     secure: true, // Ensures it's only sent over HTTPS in production
-    sameSite: "none" // Controls cross-site request behavior
+    sameSite: "none", // Controls cross-site request behavior
+    path:"/"
   })
   .json({
     containerId:container.id,
@@ -348,19 +356,24 @@ container.remove(function (err, data) {
   })
 });
 
+// app.use("/file",authenticateToken,(req,res)=>{
+
+// })
+
 
 app.use("/:containerId/file/content",authenticateToken,(req,res)=>{
+  console.log(req.user.username)
   const containerId = req.params.containerId;
     const port = CONTAINER_TO_PORT[containerId];
     const filePath = req.query.path
   
-
+  if(!port) return res.status(404).send("Container not found")
     const proxy = httpProxy.createProxyServer({
-      target: 'http://localhost:8003',
+      target: `http://localhost:${port}`,
       ws: true,
     });
   //  upgrade this proxy to websocket
-  proxy.web(req, res, { target: `http://localhost:8003/file/content/` ,
+  proxy.web(req, res, { target: `http://localhost:${port}/file/content/` ,
     ws:true,
     changeOrigin:true,
     
@@ -380,17 +393,17 @@ app.use('/c/:containerId', (req, res, next) => {
     const port = CONTAINER_TO_PORT[containerId];
   
     // If containerId has no associated port, skip this middleware
-    // if (!port) {
-    //     return res.status(404).send('Container ID not found');
-    // }
+    if (!port) {
+        return res.status(404).send('Container ID not found');
+    }
   //  return res.send("hi")
     // Proxy the request to the target port
     const proxy = httpProxy.createProxyServer({
-      target: 'http://localhost:8003',
+      target: `http://localhost:${port}`,
       ws: true,
     });
   //  upgrade this proxy to websocket
-  proxy.web(req, res, { target: `http://localhost:8003/` ,
+  proxy.web(req, res, { target: `http://localhost:${port}/` ,
     ws:true,
     changeOrigin:true,
     
@@ -417,16 +430,17 @@ server.on('upgrade', (req, socket, head) => {
   
 
   const urlParams = new URL(`http://l`+req.url);
-const containerId = urlParams.searchParams.get("id")
+  // console.log("url",urlParams)
+const containerId = urlParams.searchParams.get("id");
+const isInviteLink = urlParams.searchParams.get("invite");
+
+console.log("isInviteLink",isInviteLink)
 const port = CONTAINER_TO_PORT[containerId];
 
   if(port ){
-
-  
     const proxy = httpProxy.createProxyServer({
       target: `http://localhost:${port}`,
       ws: true,
-      
     });
 
     proxy.ws(req, socket, head);
@@ -443,3 +457,6 @@ const port = CONTAINER_TO_PORT[containerId];
 server.listen(3005, () => {
   console.log('listening on *:3005');
 });
+
+
+
