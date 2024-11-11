@@ -17,5 +17,4 @@ in new terminal change directory to ```cloude-ide\client```and type in terminal 
 for signup
 ![image](https://github.com/user-attachments/assets/3be6796a-8048-4f5c-bf71-37ccb94feefc)
 
-
-
+if you have any query can reach out on twitter or linkedin on my github profile 
