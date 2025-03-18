@@ -6,7 +6,7 @@ const DB_PORT = 3306;
 const JWT_SECRET = "habibi"
 const JWT_EXPIRES_IN = "1d"
 const IMAGE_NAME = 'server-app-image1'
-module.exports = {
+export {
     DB_HOST,
     DB_NAME,
     DB_PASSWORD,

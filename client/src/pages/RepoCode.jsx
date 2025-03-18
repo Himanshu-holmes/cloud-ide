@@ -232,15 +232,15 @@ return () => {
         {/* */}
         <Button className="dark:bg-slate-300 p-4" onClick={(e)=>{
           if(!roomId) return
-          navigator.clipboard.writeText(inviteLink+roomId)
+          navigator.clipboard.writeText(`${inviteLink}/${roomId}?invite=true`)
           .then(()=>{
-            toast.success('Room ID copied to clipboard')
+            toast.success('Invite Link copied to clipboard')
           })
           .catch(()=>{
-            toast.error('Failed to copy Room ID')
+            toast.error('Failed to copy Invite Link')
           })
         }}>
-          Copy Room ID
+          Copy Invite Link
         </Button>
         <Button className="dark:bg-slate-300 p-4" onClick={(e)=>{
           navigate('/')

@@ -1,11 +1,12 @@
+import path from "path"
+import Docker from "dockerode"
+import { IMAGE_NAME } from "../constant";
 
-const path = require('path');
-const { IMAGE_NAME } = require('./../constant');
 
 
-async function containerizeServerRepo(docker) {
+export async function containerizeServerRepo(docker:Docker) {
   try {
-    const imageName = IMAGE_NAME;
+    const imageName:string = IMAGE_NAME;
     const serverRepoPath = path.resolve(__dirname, '../../server'); // Adjust if `server` is not in the parent directory
     // console.log(serverRepoPath)
 
@@ -46,6 +47,3 @@ async function containerizeServerRepo(docker) {
 }
 
 
-module.exports = {
-    containerizeServerRepo
-}

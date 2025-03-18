@@ -1,5 +1,5 @@
-const { executeQuery } = require("../dbConnect");
-const { formattedResponse } = require("../utils");
+import { executeQuery }  from "../dbConnect"
+import { formattedResponse} from "../utils"
 
 const createTableUsers = `
 CREATE TABLE IF NOT EXISTS users (
@@ -45,11 +45,11 @@ try {
     };
     
     return formattedResponse(200,null,"dbSetup successfully")
-} catch (error) {
+} catch (error:any) {
     console.log(error);
     return formattedResponse(500,null,`dbSetup :: ${error.message}`)
 }
 };
-module.exports = {
+export {
     dbSetup
 }

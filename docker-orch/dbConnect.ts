@@ -1,7 +1,8 @@
-const mysql = require("mysql2/promise");
-const { formattedResponse } = require("./utils");
-const { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT } = require("./constant");
-let pool;
+import mysql  from "mysql2/promise";
+import { formattedResponse } from "./utils";
+import { DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT } from "./constant";
+import { QueryResult } from "./types";
+let pool: mysql.Pool;
 async function createPool() {
     return new Promise(async (resolve, reject) => {
       try {
@@ -21,7 +22,7 @@ async function createPool() {
   
         // console.log("Database connection pool created");
         resolve(formattedResponse(201, pool, "Database connection pool created"));
-      } catch (error) {
+      } catch (error:any) {
         console.log("Error creating database connection pool:", error.code);
         resolve(
           formattedResponse(500, error, "Error creating database connection pool")
@@ -30,7 +31,7 @@ async function createPool() {
     });
   }
   
-  function executeQuery(query, values) {
+  export function executeQuery(query: string, values?: any[]) :Promise<QueryResult> {
     return new Promise(async (resolve, reject) => {
       let connection;
       try {
@@ -54,7 +55,7 @@ async function createPool() {
         // pool.data.end();
   
         resolve(formattedResponse(200, rows, "Query executed successfully"));
-      } catch (error) {
+      } catch (error:any) {
         console.log("Error executing query:", error.code, error);
         // console.log("Error executing query:", error.code, error.message);
   
@@ -73,6 +74,3 @@ async function createPool() {
     });
   };
 
-  module.exports = {
-    executeQuery
-  }

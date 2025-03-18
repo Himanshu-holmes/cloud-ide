@@ -38,4 +38,4 @@ export const ACTIONS = {
     LEAVE: 'leave',
 };
 
-export const inviteLink = "http://localhost:5173/"
+export const inviteLink = "http://localhost:5173/editor"
