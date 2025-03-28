@@ -1,4 +1,4 @@
-cloud-ide 
+cloud-ide arch
 ![cloud-ide-arch](https://github.com/user-attachments/assets/15ff1f68-0c05-443a-a488-c87fdc55794d)
 
 set up db
